@@ -184,7 +184,7 @@ class ESKF:
 
         # Set submatrices in eq. (10.68)
         A[POS_IDX * VEL_IDX] = I
-        A[VEL_IDX * ERR_ATT_IDX] = -R @ S_acc
+        A[VEL_IDX * ERR_ATT_IDX] = -R @ S_acctart=0
         A[VEL_IDX * ERR_ACC_BIAS_IDX] = -R
         A[ERR_ATT_IDX * ERR_ATT_IDX] = -S_omega
         A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = -I
@@ -222,16 +222,9 @@ class ESKF:
 
         R = quaternion_to_rotation_matrix(x_nominal[ATT_IDX], debug=self.debug)
         I = np.identity(3)
-    
-        G = np.zeros((15, 12))
         
-        # Set submatrices in eq. (10.68)
-        G[VEL_IDX * POS_IDX] = -R
-        G[ERR_ATT_IDX * VEL_IDX] = -I
-        G[ERR_ACC_BIAS_IDX * ERR_ATT_IDX] = I
-        G[ERR_GYRO_BIAS_IDX * ERR_ACC_BIAS_IDX] = I
-        
-        
+        # G in eq. (10.68)
+        G = np.vstack(np.zeros((3,12)), la.block_diag(-R, -I, I, I))
 
         assert G.shape == (15, 12), f"ESKF.Gerr: G-matrix shape incorrect {G.shape}"
         return G
