@@ -275,7 +275,7 @@ class ESKF:
 
         V = np.zeros((30, 30))
         V[CatSlice(start=0, stop=15)*CatSlice(start=0, stop=15)] = -A
-        V[CatSlice(start=0, stop=15)*CatSlice(start=15, stop=30)] = G @ Q np.transpose(G)
+        V[CatSlice(start=0, stop=15)*CatSlice(start=15, stop=30)] = G @ self.Q_err @ np.transpose(G)
         V[CatSlice(start=15, stop=30)*CatSlice(start=15, stop=30)] = np.transpose(A)
         assert V.shape == (
             30,
