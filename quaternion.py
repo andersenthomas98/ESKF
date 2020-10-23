@@ -32,7 +32,7 @@ def quaternion_product(ql: np.ndarray, qr: np.ndarray) -> np.ndarray:
         eta_right = qr[0]
         q_right = qr.copy()
     elif qr.shape == (3,):
-        epsilon_right = qr[1:].reshape((3,1))
+        epsilon_right = qr.reshape((3,1))
         q_right = np.concatenate(([0], qr))
     else:
         raise RuntimeError(
