@@ -113,8 +113,7 @@ class ESKF:
             ), "ESKF.predict_nominal: Quaternion not normalized and norm failed to catch it."
 
         R = quaternion_to_rotation_matrix(quaternion, debug=self.debug)
-        g = np.array([0, 0, 9.81]) # assuming NED coordinates
-        a = R @ acceleration + g # Already debiased, apparently
+        a = R @ acceleration + self.g # Already debiased, apparently
         k = Ts*omega
         kn = la.norm(k)
 
@@ -335,14 +334,13 @@ class ESKF:
 
         Ad, GQGd = self.discrete_error_matrices(x_nominal, acceleration, omega, Ts)
 
-        P_predicted = np.zeros((15, 15))
+        P_predicted = Ad @ P @ Ad.T + GQGd # np.zeros((15, 15))
 
         assert P_predicted.shape == (
             15,
             15,
         ), f"ESKF.predict_covariance: P_predicted shape incorrect {P_predicted.shape}"
         
-        P_predicted = Ad @ P @ Ad.T + GQGd
         
         return P_predicted
 
@@ -390,12 +388,12 @@ class ESKF:
         gyro_bias = self.S_g @ x_nominal[GYRO_BIAS_IDX]
 
         # debias IMU measurements
-        acceleration = np.zeros((3,))
-        omega = np.zeros((3,))
+        acceleration = r_z_acc - acc_bias # np.zeros((3,))
+        omega = r_z_gyro - gyro_bias # np.zeros((3,))
 
         # perform prediction
-        x_nominal_predicted = np.zeros((16,))
-        P_predicted = np.zeros((15, 15))
+        x_nominal_predicted = self.predict_nominal(x_nominal, acceleration, omega, Ts) # np.zeros((16,))
+        P_predicted = self.predict_covariance(x_nominal, P, acceleration, omega, Ts) # np.zeros((15, 15))
 
         assert x_nominal_predicted.shape == (
             16,
@@ -441,15 +439,17 @@ class ESKF:
         DTX_IDX = POS_IDX + VEL_IDX + ERR_ACC_BIAS_IDX + ERR_GYRO_BIAS_IDX
 
         x_injected = x_nominal.copy()
-        # TODO: Inject error state into nominal state (except attitude / quaternion)
-        # TODO: Inject attitude
-        # TODO: Normalize quaternion
+        x_injected[INJ_IDX] += delta_x[DTX_IDX] # TODO: Inject error state into nominal state (except attitude / quaternion)
+        quat = quaternion_product(x_nominal[ATT_IDX], np.concatenate(([1],(0.5*delta_x[ERR_ATT_IDX]))))# TODO: Inject attitude
+        quat = quat/np.norm(quat)# TODO: Normalize quaternion
+        x_injected[ATT_IDX] = quat
 
         # Covariance
-        G_injected = np.zeros((1,))  # TODO: Compensate for injection in the covariances
-        P_injected = np.zeros(
-            (15, 15)
-        )  # TODO: Compensate for injection in the covariances
+        G_injected = np.zeros((15,15))  # TODO: Compensate for injection in the covariances
+        G_injected[:6,:6] = np.eye(6)
+        G_injected[9:,9:] = np.eye(6)
+        G_injected[6:9,6:9] = np.eye(3) - cross_product_matrix(0.5 * delta_x[ERR_ATT_IDX])
+        P_injected = G_injected @ P @ G_injected.T # TODO: Compensate for injection in the covariances
 
         assert x_injected.shape == (
             16,
