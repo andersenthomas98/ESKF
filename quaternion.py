@@ -65,7 +65,13 @@ def quaternion_to_rotation_matrix(
     Raises:
         RuntimeError: Quaternion is of the wrong shape
         AssertionError: Debug assert fails, rotation matrix is not element of SO(3)
-
+ epsilon_right = np.zeros((3,1))
+    if qr.shape == (4,):
+        eta_right = qr[0]
+        q_right = qr.copy()
+    elif qr.shape == (3,):
+        epsilon_right = qr[1:].reshape((3,1))
+        q_right = np.conc
     Returns:
         np.ndarray: Rotation matrix of shape (3, 3)
     """
@@ -79,8 +85,9 @@ def quaternion_to_rotation_matrix(
         raise RuntimeError(
             f"quaternion.quaternion_to_rotation_matrix: Quaternion to multiplication error, quaternion shape incorrect: {quaternion.shape}"
         )
-
-    R = np.zeros((3, 3))  # TODO: Convert from quaternion to rotation matrix
+    
+    S = utils.cross_product_matrix(epsilon)
+    R = np.identity(3) + 2*eta*S + 2*S*S # Convert from quaternion to rotation matrix
 
     if debug:
         assert np.allclose(
@@ -108,11 +115,19 @@ def quaternion_to_euler(quaternion: np.ndarray) -> np.ndarray:
     ), f"quaternion.quaternion_to_euler: Quaternion shape incorrect {quaternion.shape}"
 
     quaternion_squared = quaternion ** 2
-
-    raise NotImplementedError  # TODO: remove when done
-    phi = 0  # TODO: Convert from quaternion to euler angles
-    theta = 0  # TODO: Convert from quaternion to euler angles
-    psi = 0  # TODO: Convert from quaternion to euler angles
+    eta_squared = quaternion_squared[0]
+    epsilon1_squared = quaternion_squared[1]
+    epsilon2_squared = quaternion_squared[2]
+    epsilon3_squared = quaternion_squared[3]
+    
+    eta = quaternion[0]
+    epsilon1 = quaternion[1]
+    epsilon2 = quaternion[2]
+    epsilon3 = quaternion[3]
+    
+    phi = np.arctan2(2*(epsilon3*epsilon2 + eta*epsilon1), eta_squared - epsilon1_squared - epsilon2_squared + epsilon3_squared)
+    theta = np.arcsin(2*(eta*epsilon2 - epsilon1*epsilon3))
+    psi = np.arctan2(2*(epsilon1*epsilon2 + eta*epsilon3), eta_squared + epsilon1_squared - epsilon2_squared - epsilon3_squared)
 
     euler_angles = np.array([phi, theta, psi])
     assert euler_angles.shape == (
