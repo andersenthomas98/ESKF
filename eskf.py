@@ -121,10 +121,6 @@ class ESKF:
         position_prediction = position + Ts * velocity + (Ts^2 / 2) * a # np.zeros((3,))  # TODO: Calculate predicted position
         velocity_prediction = velocity + Ts * a # np.zeros((3,))  # TODO: Calculate predicted velocity
 
-        # quaternion_prediction = np.array(
-        #     [1, 0, 0, 0]
-        # )  
-        
         quaternion_prediction = quaternion_product(quaternion, np.array([np.cos(kn/2), np.sin(kn/2), k.T/kn])) # TODO: Calculate predicted quaternion, might need to normalize omegas
 
         # Normalize quaternion
@@ -351,6 +347,9 @@ class ESKF:
             15,
             15,
         ), f"ESKF.predict_covariance: P_predicted shape incorrect {P_predicted.shape}"
+        
+        P_predicted = Ad @ P @ Ad.T + GQGd
+        
         return P_predicted
 
     def predict(
