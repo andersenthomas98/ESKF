@@ -86,6 +86,7 @@ def quaternion_to_rotation_matrix(
             f"quaternion.quaternion_to_rotation_matrix: Quaternion to multiplication error, quaternion shape incorrect: {quaternion.shape}"
         )
     
+    # Eq. (10.37)
     S = utils.cross_product_matrix(epsilon)
     R = np.identity(3) + 2*eta*S + 2*S*S # Convert from quaternion to rotation matrix
 
@@ -125,6 +126,7 @@ def quaternion_to_euler(quaternion: np.ndarray) -> np.ndarray:
     epsilon2 = quaternion[2]
     epsilon3 = quaternion[3]
     
+    # Eq. (10.38)
     phi = np.arctan2(2*(epsilon3*epsilon2 + eta*epsilon1), eta_squared - epsilon1_squared - epsilon2_squared + epsilon3_squared)
     theta = np.arcsin(2*(eta*epsilon2 - epsilon1*epsilon3))
     psi = np.arctan2(2*(epsilon1*epsilon2 + eta*epsilon3), eta_squared + epsilon1_squared - epsilon2_squared - epsilon3_squared)

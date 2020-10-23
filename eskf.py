@@ -173,20 +173,27 @@ class ESKF:
 
         # Rotation matrix
         R = quaternion_to_rotation_matrix(x_nominal[ATT_IDX], debug=self.debug)
-
+        
+        # Skew symmetric matrices
+        S_acc = cross_product_matrix(acceleration - x_nominal[ACC_BIAS_IDX], debug=self.debug)
+        S_omega = cross_product_matrix(omega - x_nominal[GYRO_BIAS_IDX], debug=self.debug)
+        
+        # 3x3 identity matrix
+        I = np.identity(3)
+        
         # Allocate the matrix
         A = np.zeros((15, 15))
 
-        # Set submatrices
-        A[POS_IDX * VEL_IDX] = np.zeros((3,))
-        A[VEL_IDX * ERR_ATT_IDX] = np.zeros((3,))
-        A[VEL_IDX * ERR_ACC_BIAS_IDX] = np.zeros((3,))
-        A[ERR_ATT_IDX * ERR_ATT_IDX] = np.zeros((3,))
-        A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = np.zeros((3,))
-        A[ERR_ACC_BIAS_IDX * ERR_ACC_BIAS_IDX] = np.zeros((3,))
-        A[ERR_GYRO_BIAS_IDX * ERR_GYRO_BIAS_IDX] = np.zeros((3,))
+        # Set submatrices in eq. (10.68)
+        A[POS_IDX * VEL_IDX] = I
+        A[VEL_IDX * ERR_ATT_IDX] = -R @ S_acc
+        A[VEL_IDX * ERR_ACC_BIAS_IDX] = -R
+        A[ERR_ATT_IDX * ERR_ATT_IDX] = -S_omega
+        A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = -I
+        A[ERR_ACC_BIAS_IDX * ERR_ACC_BIAS_IDX] = -self.p_acc*I
+        A[ERR_GYRO_BIAS_IDX * ERR_GYRO_BIAS_IDX] = -self.p_gyro*I
 
-        # Bias correction
+        # Bias correction... ehm, what does this do?
         A[VEL_IDX * ERR_ACC_BIAS_IDX] = A[VEL_IDX * ERR_ACC_BIAS_IDX] @ self.S_a
         A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] = (
             A[ERR_ATT_IDX * ERR_GYRO_BIAS_IDX] @ self.S_g
@@ -216,8 +223,17 @@ class ESKF:
         ), f"ESKF.Gerr: x_nominal shape incorrect {x_nominal.shape}"
 
         R = quaternion_to_rotation_matrix(x_nominal[ATT_IDX], debug=self.debug)
-
+        I = np.identity(3)
+    
         G = np.zeros((15, 12))
+        
+        # Set submatrices in eq. (10.68)
+        G[VEL_IDX * POS_IDX] = -R
+        G[ERR_ATT_IDX * VEL_IDX] = -I
+        G[ERR_ACC_BIAS_IDX * ERR_ATT_IDX] = I
+        G[ERR_GYRO_BIAS_IDX * ERR_ACC_BIAS_IDX] = I
+        
+        
 
         assert G.shape == (15, 12), f"ESKF.Gerr: G-matrix shape incorrect {G.shape}"
         return G
