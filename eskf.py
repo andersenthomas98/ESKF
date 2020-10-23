@@ -113,23 +113,26 @@ class ESKF:
             ), "ESKF.predict_nominal: Quaternion not normalized and norm failed to catch it."
 
         R = quaternion_to_rotation_matrix(quaternion, debug=self.debug)
+        g = np.array([0, 0, 9.81]) # assuming NED coordinates
+        a = R @ acceleration + g # Already debiased, apparently
+        k = Ts*omega
+        kn = la.norm(k)
 
-        position_prediction = np.zeros((3,))  # TODO: Calculate predicted position
-        velocity_prediction = np.zeros((3,))  # TODO: Calculate predicted velocity
+        position_prediction = position + Ts * velocity + (Ts^2 / 2) * a # np.zeros((3,))  # TODO: Calculate predicted position
+        velocity_prediction = velocity + Ts * a # np.zeros((3,))  # TODO: Calculate predicted velocity
 
-        quaternion_prediction = np.array(
-            [1, 0, 0, 0]
-        )  # TODO: Calculate predicted quaternion
+        # quaternion_prediction = np.array(
+        #     [1, 0, 0, 0]
+        # )  
+        
+        quaternion_prediction = quaternion_product(quaternion, np.array([np.cos(kn/2), np.sin(kn/2), k.T/kn])) # TODO: Calculate predicted quaternion, might need to normalize omegas
 
         # Normalize quaternion
-        quaternion_prediction = quaternion_prediction  # TODO: Normalize
+        quaternion_prediction = quaternion_prediction/(la.norm(quaternion_prediction))  # TODO: Normalize
 
-        acceleration_bias_prediction = np.zeros(
-            (3,)
-        )  # TODO: Calculate predicted acceleration bias
-        gyroscope_bias_prediction = np.zeros(
-            (3,)
-        )  # TODO: Calculate predicted gyroscope bias
+        acceleration_bias_prediction = acceleration_bias # assuming p_acc = 0 TODO: Calculate predicted acceleration bias
+  
+        gyroscope_bias_prediction = gyroscope_bias # assuming p_gyro = 0 TODO: Calculate predicted gyroscope bias
 
         x_nominal_predicted = np.concatenate(
             (
