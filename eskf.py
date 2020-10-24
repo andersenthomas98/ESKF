@@ -117,10 +117,10 @@ class ESKF:
         k = Ts*omega
         kn = la.norm(k)
 
-        position_prediction = position + Ts * velocity + (Ts^2 / 2) * a # np.zeros((3,))  # TODO: Calculate predicted position
+        position_prediction = position + Ts * velocity + (Ts**2 / 2) * a # np.zeros((3,))  # TODO: Calculate predicted position
         velocity_prediction = velocity + Ts * a # np.zeros((3,))  # TODO: Calculate predicted velocity
 
-        quaternion_prediction = quaternion_product(quaternion, np.array([np.cos(kn/2), np.sin(kn/2), k.T/kn])) # TODO: Calculate predicted quaternion, might need to normalize omegas
+        quaternion_prediction = quaternion_product(quaternion, np.concatenate(([np.cos(kn/2)], np.sin(kn/2)*(k.T/kn)))) # TODO: Calculate predicted quaternion, might need to normalize omegas
 
         # Normalize quaternion
         quaternion_prediction = quaternion_prediction/(la.norm(quaternion_prediction))  # TODO: Normalize
