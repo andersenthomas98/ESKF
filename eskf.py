@@ -660,7 +660,7 @@ class ESKF:
             x_nominal, P, z_GNSS_position, R_GNSS, lever_arm
         )
 
-        NIS = np.transpose(v) @ np.inv(S) @ v  # Calculate NIS
+        NIS = np.transpose(v) @ la.inv(S) @ v  # Calculate NIS
 
         assert NIS >= 0, "EKSF.NIS_GNSS_positionNIS: NIS not positive"
 
@@ -691,8 +691,9 @@ class ESKF:
         delta_position = x_true[POS_IDX] - x_nominal[POS_IDX]  # Eller motsatt? TODO: Delta position
         delta_velocity = x_true[VEL_IDX] - x_nominal[VEL_IDX]  # TODO: Delta velocity
 
-        quaternion_conj = np.vstack(x_nominal[6], -x_nominal[7:10])  # TODO: Conjugate of quaternion
-
+        #quaternion_conj = np.vstack((x_nominal[6], -x_nominal[7:10]))  # TODO: Conjugate of quaternion
+        quaternion_conj = np.array([x_nominal[6], -x_nominal[7], -x_nominal[8], -x_nominal[9]])
+        
         delta_quaternion = quaternion_product(quaternion_conj, x_true[ATT_IDX]) # why do I need Im(delta_quaternion) = 0.5*delta_theta  # TODO: Error quaternion
         delta_theta = 2 * delta_quaternion[1:] # Hmmmm...
 
@@ -734,14 +735,14 @@ class ESKF:
 
         d_x = cls.delta_x(x_nominal, x_true)
 
-        invP = np.la.inv(P)        
+        invP = la.inv(P)        
 
         NEES_all = np.transpose(d_x) @ invP @ d_x  # TODO: NEES all
-        NEES_pos = d_x[POS_IDX].T @ invP @ d_x[POS_IDX] # TODO: NEES position
-        NEES_vel = d_x[VEL_IDX].T @ invP @ d_x[VEL_IDX]   # TODO: NEES velocity
-        NEES_att = d_x[ATT_IDX].T @ invP @ d_x[ATT_IDX]   # TODO: NEES attitude
-        NEES_accbias = d_x[ACC_BIAS_IDX].T @ invP @ d_x[ACC_BIAS_IDX]   # TODO: NEES accelerometer bias
-        NEES_gyrobias = d_x[GYRO_BIAS_IDX].T @ invP @ d_x[GYRO_BIAS_IDX]   # TODO: NEES gyroscope bias
+        NEES_pos = d_x[POS_IDX].T @ invP[POS_IDX*POS_IDX] @ d_x[POS_IDX] # TODO: NEES position
+        NEES_vel = d_x[VEL_IDX].T @ invP[VEL_IDX*VEL_IDX] @ d_x[VEL_IDX]   # TODO: NEES velocity
+        NEES_att = d_x[ERR_ATT_IDX].T @ invP[ERR_ATT_IDX*ERR_ATT_IDX] @ d_x[ERR_ATT_IDX]   # TODO: NEES attitude
+        NEES_accbias = d_x[ERR_ACC_BIAS_IDX].T @ invP[ERR_ACC_BIAS_IDX*ERR_ACC_BIAS_IDX] @ d_x[ERR_ACC_BIAS_IDX]   # TODO: NEES accelerometer bias
+        NEES_gyrobias = d_x[ERR_GYRO_BIAS_IDX].T @ invP[ERR_GYRO_BIAS_IDX*ERR_GYRO_BIAS_IDX] @ d_x[ERR_GYRO_BIAS_IDX]   # TODO: NEES gyroscope bias
 
         NEESes = np.array(
             [NEES_all, NEES_pos, NEES_vel, NEES_att, NEES_accbias, NEES_gyrobias]

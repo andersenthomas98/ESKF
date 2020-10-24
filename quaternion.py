@@ -88,7 +88,7 @@ def quaternion_to_rotation_matrix(
     
     # Eq. (10.37)
     S = utils.cross_product_matrix(epsilon)
-    R = np.identity(3) + 2*eta*S + 2*S*S # Convert from quaternion to rotation matrix
+    R = np.identity(3) + 2*eta*S + 2*S@S # Convert from quaternion to rotation matrix
 
     if debug:
         assert np.allclose(
