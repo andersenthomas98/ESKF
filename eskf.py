@@ -224,7 +224,7 @@ class ESKF:
         I = np.identity(3)
         
         # G in eq. (10.68)
-        G = np.vstack(np.zeros((3,12)), la.block_diag(-R, -I, I, I))
+        G = np.vstack((np.zeros((3,12)), la.block_diag(-R, -I, I, I)))
 
         assert G.shape == (15, 12), f"ESKF.Gerr: G-matrix shape incorrect {G.shape}"
         return G
@@ -503,7 +503,7 @@ class ESKF:
         ), f"ESKF.innovation_GNSS: lever_arm shape incorrect {lever_arm.shape}"
 
         I = np.identity(3)
-        H = np.transpose(np.concatenate((I, np.zeros(13,3))))  # Eq. (10.80) Measure position
+        H = (np.concatenate((I, np.zeros((3,13))), axis = 1))  # Eq. (10.80) Measure position
         
         z_pred = H @ x_nominal # Predicted measurement
         v = z_GNSS_position - z_pred  # innovation
