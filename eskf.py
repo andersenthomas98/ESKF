@@ -713,12 +713,12 @@ class ESKF:
 
         d_x = cls.delta_x(x_nominal, x_true)
 
-        NEES_all = 0  # TODO: NEES all
-        NEES_pos = 0  # TODO: NEES position
-        NEES_vel = 0  # TODO: NEES velocity
-        NEES_att = 0  # TODO: NEES attitude
-        NEES_accbias = 0  # TODO: NEES accelerometer bias
-        NEES_gyrobias = 0  # TODO: NEES gyroscope bias
+        NEES_all = np.transpose(d_x) @ np.la.inv(P) @ d_x  # TODO: NEES all
+        NEES_pos = NEES_all[POS_IDX]  # TODO: NEES position
+        NEES_vel = NEES_all[VEL_IDX]  # TODO: NEES velocity
+        NEES_att = NEES_all[ATT_IDX]  # TODO: NEES attitude
+        NEES_accbias = NEES_all[ACC_BIAS_IDX]  # TODO: NEES accelerometer bias
+        NEES_gyrobias = NEES_all[GYRO_BIAS_IDX]  # TODO: NEES gyroscope bias
 
         NEESes = np.array(
             [NEES_all, NEES_pos, NEES_vel, NEES_att, NEES_accbias, NEES_gyrobias]
