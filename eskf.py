@@ -440,7 +440,7 @@ class ESKF:
         x_injected = x_nominal.copy()
         x_injected[INJ_IDX] += delta_x[DTX_IDX] # TODO: Inject error state into nominal state (except attitude / quaternion)
         quat = quaternion_product(x_nominal[ATT_IDX], np.concatenate(([1],(0.5*delta_x[ERR_ATT_IDX]))))# TODO: Inject attitude
-        quat = quat/np.norm(quat)# TODO: Normalize quaternion
+        quat = quat/la.norm(quat)# TODO: Normalize quaternion
         x_injected[ATT_IDX] = quat
 
         # Covariance
@@ -577,7 +577,17 @@ class ESKF:
             x_nominal, P, z_GNSS_position, R_GNSS, lever_arm
         )
 
-        H = np.transpose(np.concatenate((np.identity(3), np.zeros(13,3))))  # Eq. (10.80) Measurement matrix
+        H_x = np.concatenate((np.identity(3), np.zeros((3,13))), axis=1)  # Eq. (10.80) Measurement matrix
+        
+        q = x_nominal[ATT_IDX]
+        eta = q[0]
+        epsilon = q[1:]
+        Q_bottom = eta * np.eye(3) + cross_product_matrix(epsilon)
+        Q_top = -epsilon.T
+        Q_deltaTheta = 0.5 * np.concatenate(([Q_top], Q_bottom), axis=0)
+        X_deltax = la.block_diag(np.identity(6), Q_deltaTheta, np.identity(6))
+        
+        H = H_x @ X_deltax
 
         # in case of a specified lever arm
         if not np.allclose(lever_arm, 0):
@@ -585,8 +595,9 @@ class ESKF:
             H[:, ERR_ATT_IDX] = -R @ cross_product_matrix(lever_arm, debug=self.debug)
 
         # KF error state update
-        W = P @ np.transpose(H) @ np.inv(S)  # Kalman gain
-        delta_x = x_nominal + W @ innovation # delta x ... think this is wrong !!
+        W = (la.solve(S.T, H @ P.T)).T #  Kalman gain: W =  P @ np.transpose(H) @ np.inv(S)
+        #delta_x = x_nominal + W @ innovation # delta x ... think this is wrong !!
+        delta_x = W @ innovation
 
         Jo = I - W @ H  # for Joseph form
 
