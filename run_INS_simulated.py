@@ -7,6 +7,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+
+
 try: # see if tqdm is available, otherwise define it as a dummy
     try: # Ipython seem to require different tqdm.. try..except seem to be the easiest way to check
         __IPYTHON__
@@ -36,6 +38,8 @@ from eskf import (
 
 from quaternion import quaternion_to_euler
 from cat_slice import CatSlice
+
+from datetime import datetime
 
 # %% plot config check and style setup
 
@@ -111,7 +115,7 @@ gnss_steps = len(z_GNSS)
 # IMU noise values for STIM300, based on datasheet and simulation sample rate
 # Continous noise
 # TODO: What to remove here?
-cont_gyro_noise_std = 4.36e-5  # (rad/s)/sqrt(Hz)
+cont_gyro_noise_std = 8e-4 # 4.36e-5  # (rad/s)/sqrt(Hz)
 cont_acc_noise_std = 1.167e-3  # (m/s**2)/sqrt(Hz)
 
 # Discrete sample noise at simulation rate used
@@ -128,7 +132,7 @@ acc_bias_driving_noise_std = 4e-3
 cont_acc_bias_driving_noise_std = 6 * acc_bias_driving_noise_std / np.sqrt(1 / dt)
 
 # Position and velocity measurement
-p_std = np.array([0.3, 0.3, 0.5])  # Measurement noise
+p_std = np.array([0.3, 0.3, 0.5]) # 0.3, 0.3, 0.5])  # Measurement noise
 R_GNSS = np.diag(p_std ** 2)
 
 p_acc = 1e-16
@@ -172,11 +176,11 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX ** 2] = np.eye(3)# TODO
-P_pred[0][VEL_IDX ** 2] = np.eye(3)# TODO
-P_pred[0][ERR_ATT_IDX ** 2] = np.eye(3)# TODO # error rotation vector (not quat)
-P_pred[0][ERR_ACC_BIAS_IDX ** 2] = np.eye(3)# TODO
-P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = np.eye(3)# TODO
+P_pred[0][POS_IDX ** 2] = (10*np.eye(3))**2# TODO
+P_pred[0][VEL_IDX ** 2] = (20*np.eye(3))**2 # TODO
+P_pred[0][ERR_ATT_IDX ** 2] = (0.15*np.eye(3))**2 # TODO # error rotation vector (not quat)
+P_pred[0][ERR_ACC_BIAS_IDX ** 2] = (0.1*np.eye(3))**2 # TODO
+P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = (0.01*np.eye(3))**2 # TODO
 
 # %% Test: you can run this cell to test your implementation
 dummy = eskf.predict(x_pred[0], P_pred[0], z_acceleration[0], z_gyroscope[0], dt)
@@ -184,15 +188,19 @@ dummy = eskf.update_GNSS_position(x_pred[0], P_pred[0], z_GNSS[0], R_GNSS, lever
 # %% Run estimation
 # run this file with 'python -O run_INS_simulated.py' to turn of assertions and get about 8/5 speed increase for longer runs
 
-N: int = steps # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+starttime = datetime.now()
+now = starttime
+then = starttime
+
+N: int = 5000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
 for k in tqdm(range(N)):
     if doGNSS and timeIMU[k] >= timeGNSS[GNSSk]:
         NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO:
-
         x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm)
+
         assert np.all(np.isfinite(P_est[k])), f"Not finite P_pred at index {k}"
 
         GNSSk += 1
@@ -201,7 +209,7 @@ for k in tqdm(range(N)):
         x_est[k] = x_pred[k]
         P_est[k] = P_pred[k] # TODO
 
-    print(k, "/", N)
+    # print(k, "/", N)
     delta_x[k] = eskf.delta_x(x_est[k], x_true[k])
     (
         NEES_all[k],
@@ -212,9 +220,12 @@ for k in tqdm(range(N)):
         NEES_gyrobias[k],
     ) = eskf.NEESes(x_est[k], P_est[k], x_true[k])
 
+
+    # now = datetime.now()
     if k < N - 1:
         x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[k], z_gyroscope[k], dt) # TODO: Hint: measurements come from the the present and past, not the future
-
+    # then = no
+    # print("Elaped time : ", datetime.now() - then)
     if eskf.debug:
         assert np.all(np.isfinite(P_pred[k])), f"Not finite P_pred at index {k + 1}"
 
@@ -353,7 +364,7 @@ fig5, axs5 = plt.subplots(7, 1, num=5, clear=True)
 
 axs5[0].plot(t, (NEES_all[:N]).T)
 axs5[0].plot(np.array([0, N - 1]) * dt, (CI15 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI15[0] <= NEES_all) * (NEES_all <= CI15[1]))
+insideCI = np.mean((CI15[0] <= NEES_all[:N]) * (NEES_all[:N] <= CI15[1]))
 axs5[0].set(
     title=f"Total NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -361,7 +372,7 @@ axs5[0].set_ylim([0, 50])
 
 axs5[1].plot(t, (NEES_pos[0:N]).T)
 axs5[1].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NEES_pos) * (NEES_pos <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NEES_pos[:N]) * (NEES_pos[:N] <= CI3[1]))
 axs5[1].set(
     title=f"Position NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -369,7 +380,7 @@ axs5[1].set_ylim([0, 20])
 
 axs5[2].plot(t, (NEES_vel[0:N]).T)
 axs5[2].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NEES_vel) * (NEES_vel <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NEES_vel[:N]) * (NEES_vel[:N] <= CI3[1]))
 axs5[2].set(
     title=f"Velocity NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -377,7 +388,7 @@ axs5[2].set_ylim([0, 20])
 
 axs5[3].plot(t, (NEES_att[0:N]).T)
 axs5[3].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NEES_att) * (NEES_att <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NEES_att[:N]) * (NEES_att[:N] <= CI3[1]))
 axs5[3].set(
     title=f"Attitude NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -385,7 +396,7 @@ axs5[3].set_ylim([0, 20])
 
 axs5[4].plot(t, (NEES_accbias[0:N]).T)
 axs5[4].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NEES_accbias) * (NEES_accbias <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NEES_accbias[:N]) * (NEES_accbias[:N] <= CI3[1]))
 axs5[4].set(
     title=f"Accelerometer NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -393,7 +404,7 @@ axs5[4].set_ylim([0, 20])
 
 axs5[5].plot(t, (NEES_gyrobias[0:N]).T)
 axs5[5].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NEES_gyrobias) * (NEES_gyrobias <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NEES_gyrobias[:N]) * (NEES_gyrobias[:N] <= CI3[1]))
 axs5[5].set(
     title=f"Gyro bias NEES ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )
@@ -401,7 +412,7 @@ axs5[5].set_ylim([0, 20])
 
 axs5[6].plot(NIS[:GNSSk])
 axs5[6].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NIS) * (NIS <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NIS[:GNSSk]) * (NIS[:GNSSk] <= CI3[1]))
 axs5[6].set(
     title=f"NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)"
 )

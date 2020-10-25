@@ -274,7 +274,7 @@ class ESKF:
             30,
             30,
         ), f"ESKF.discrete_error_matrices: Van Loan matrix shape incorrect {omega.shape}"
-        VanLoanMatrix = la.expm(V)  # This can be slow... if too slow use Taylor or Pade approximation
+        VanLoanMatrix = la.expm(Ts*V)  # This can be slow... if too slow use Taylor or Pade approximation
         
         V1 = VanLoanMatrix[CatSlice(start=15, stop=30)*CatSlice(start=15, stop=30)]
         V2 = VanLoanMatrix[CatSlice(start=0, stop=15)*CatSlice(start=15, stop=30)]
