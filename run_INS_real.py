@@ -114,24 +114,27 @@ gnss_steps = len(z_GNSS)
 
 # %% Measurement noise
 # Continous noise
-cont_gyro_noise_std = # TODO
-cont_acc_noise_std = # TODO
+cont_gyro_noise_std = 8e-4 # TODO
+cont_acc_noise_std = 1.167e-3 # TODO
 
 # Discrete sample noise at simulation rate used
 rate_std = cont_gyro_noise_std*np.sqrt(1/dt)
 acc_std  = cont_acc_noise_std*np.sqrt(1/dt)
 
 # Bias values
-rate_bias_driving_noise_std = # TODO
+rate_bias_driving_noise_std = 5e-5 # TODO
 cont_rate_bias_driving_noise_std = rate_bias_driving_noise_std/np.sqrt(1/dt)
 
-acc_bias_driving_noise_std = # TODO
+acc_bias_driving_noise_std = 4e-3 # TODO
 cont_acc_bias_driving_noise_std = acc_bias_driving_noise_std/np.sqrt(1/dt)
 
 # Position and velocity measurement
-p_acc = # TODO
+p_acc = 1e-16 # TODO
 
-p_gyro = # TODO
+p_gyro = 1e-16 # TODO
+
+p_std = np.array([1, 1, 10]) # Measurement noise
+R_GNSS = np.diag(p_std ** 2)
 
 # %% Estimator
 eskf = ESKF(
@@ -173,26 +176,27 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = (1e-3)**2 * np.eye(3)
 
 # %% Run estimation
 
-N = steps
+N = 1000
 GNSSk = 0
 
 for k in tqdm(range(N)):
     if timeIMU[k] >= timeGNSS[GNSSk]:
-        R_GNSS = # TODO: Current GNSS covariance
-        NIS[GNSSk] = # TODO
+        #R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
+        NIS[GNSSk] = NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
 
-        x_est[k], P_est[k] = # TODO
-        if eskf.debug
+        x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
+        
+        if eskf.debug:
             assert np.all(np.isfinite(P_est[k])), f"Not finite P_pred at index {k}"
 
         GNSSk += 1
     else:
         # no updates, so estimate = prediction
-        x_est[k] = # TODO
-        P_est[k] = # TODO
+        x_est[k] = x_pred[k] # TODO
+        P_est[k] = P_pred[k] # TODO
 
     if k < N - 1:
-        x_pred[k + 1], P_pred[k + 1] = # TODO
+        x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[k], z_gyroscope[k], dt) # TODO
 
     if eskf.debug:
         assert np.all(np.isfinite(P_pred[k])), f"Not finite P_pred at index {k + 1}"
@@ -204,10 +208,11 @@ fig1 = plt.figure(1)
 ax = plt.axes(projection='3d')
 
 ax.plot3D(x_est[0:N, 1], x_est[0:N, 0], -x_est[0:N, 2])
-ax.plot3D(z_GNSS[0:N, 1], z_GNSS[0:N, 0], -z_GNSS[0:N, 2])
+ax.plot3D(z_GNSS[0:GNSSk, 1], z_GNSS[0:GNSSk, 0], -z_GNSS[0:GNSSk, 2])
+ax.legend(['x_est', 'z_GNSS'])
 ax.set_xlabel('East [m]')
-ax.set_xlabel('North [m]')
-ax.set_xlabel('Altitude [m]')
+ax.set_ylabel('North [m]')
+ax.set_zlabel('Altitude [m]')
 
 plt.grid()
 
@@ -251,8 +256,8 @@ CI3 = np.array(scipy.stats.chi2.interval(confprob, 3)).reshape((2, 1))
 fig3 = plt.figure()
 
 plt.plot(NIS[:GNSSk])
-plt.plot(np.array([0, N-1]) * dt, (CI3@np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NIS) * (NIS <= CI3[1]))
+plt.plot(np.array([0, N-1]) * dt, (CI3 @ np.ones((1, 2))).T)
+insideCI = np.mean((CI3[0] <= NIS[:GNSSk]) * (NIS[:GNSSk] <= CI3[1]))
 plt.title(f'NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)')
 plt.grid()
 
