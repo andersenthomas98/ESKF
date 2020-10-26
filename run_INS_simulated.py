@@ -192,7 +192,11 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
+<<<<<<< HEAD
 N: int = 3000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+=======
+N: int = 1000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+>>>>>>> d6c4ec516efec58324557e403b20d8223f224bae
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
@@ -306,9 +310,9 @@ axs3[2].plot(t, eul_error)
 axs3[2].set(ylabel="Euler angles error [deg]")
 axs3[2].legend(
     [
-        rf"$\phi$ ({np.sqrt(np.mean((eul_error[:N, 0] * 180 / np.pi)**2))})",
-        rf"$\theta$ ({np.sqrt(np.mean((eul_error[:N, 1] * 180 / np.pi)**2))})",
-        rf"$\psi$ ({np.sqrt(np.mean((eul_error[:N, 2] * 180 / np.pi)**2))})",
+        rf"$\phi$ ({np.sqrt(np.mean((eul_error[:N, 0])**2))})",
+        rf"$\theta$ ({np.sqrt(np.mean((eul_error[:N, 1])**2))})",
+        rf"$\psi$ ({np.sqrt(np.mean((eul_error[:N, 2])**2))})",
     ]
 )
 
@@ -316,9 +320,9 @@ axs3[3].plot(t, delta_x[:N, ERR_ACC_BIAS_IDX])
 axs3[3].set(ylabel="Accl bias error [m/s^2]")
 axs3[3].legend(
     [
-        f"$x$ ({np.sqrt(np.mean(delta_x[:N, 12]**2))})",
-        f"$y$ ({np.sqrt(np.mean(delta_x[:N, 13]**2))})",
-        f"$z$ ({np.sqrt(np.mean(delta_x[:N, 14]**2))})",
+        f"$x$ ({np.sqrt(np.mean(delta_x[:N, 9]**2))})",
+        f"$y$ ({np.sqrt(np.mean(delta_x[:N, 10]**2))})",
+        f"$z$ ({np.sqrt(np.mean(delta_x[:N, 11]**2))})",
     ]
 )
 
@@ -326,9 +330,9 @@ axs3[4].plot(t, delta_x[:N, ERR_GYRO_BIAS_IDX] * 180 / np.pi)
 axs3[4].set(ylabel="Gyro bias error [deg/s]")
 axs3[4].legend(
     [
-        f"$x$ ({np.sqrt(np.mean((delta_x[:N, 12]* 180 / np.pi)**2))})",
-        f"$y$ ({np.sqrt(np.mean((delta_x[:N, 13]* 180 / np.pi)**2))})",
-        f"$z$ ({np.sqrt(np.mean((delta_x[:N, 14]* 180 / np.pi)**2))})",
+        f"$x$ ({np.sqrt(np.mean((delta_x[:N, 12])**2))})",
+        f"$y$ ({np.sqrt(np.mean((delta_x[:N, 13])**2))})",
+        f"$z$ ({np.sqrt(np.mean((delta_x[:N, 14])**2))})",
     ]
 )
 
@@ -352,7 +356,7 @@ axs4[0].legend(
 
 axs4[1].plot(t, np.linalg.norm(delta_x[:N, VEL_IDX], axis=1))
 axs4[1].set(ylabel="Speed error [m/s]")
-axs4[1].legend([f"RMSE: {np.sqrt(np.mean(np.sum(delta_x[:N, VEL_IDX]**2, axis=0)))}"])
+axs4[1].legend([f"RMSE: {np.sqrt(np.mean(np.sum(delta_x[:N, VEL_IDX]**2, axis=1)))}"])
 
 
 # %% Consistency
