@@ -579,17 +579,19 @@ class ESKF:
             x_nominal, P, z_GNSS_position, R_GNSS, lever_arm
         )
 
-        H_x = np.concatenate((np.identity(3), np.zeros((3,13))), axis=1)  # Eq. (10.80) Measurement matrix
+        # H_x = np.concatenate((np.identity(3), np.zeros((3,13))), axis=1)  # Eq. (10.80) Measurement matrix
         
-        q = x_nominal[ATT_IDX]
-        eta = q[0]
-        epsilon = q[1:]
-        Q_bottom = eta * np.eye(3) + cross_product_matrix(epsilon)
-        Q_top = -epsilon.T
-        Q_deltaTheta = 0.5 * np.concatenate(([Q_top], Q_bottom), axis=0)
-        X_deltax = la.block_diag(np.identity(6), Q_deltaTheta, np.identity(6))
+        # q = x_nominal[ATT_IDX]
+        # eta = q[0]
+        # epsilon = q[1:]
+        # Q_bottom = eta * np.eye(3) + cross_product_matrix(epsilon)
+        # Q_top = -epsilon.T
+        # Q_deltaTheta = 0.5 * np.concatenate(([Q_top], Q_bottom), axis=0)
+        # X_deltax = la.block_diag(np.identity(6), Q_deltaTheta, np.identity(6))
         
-        H = H_x @ X_deltax
+        # H = H_x @ X_deltax
+        
+        H = np.concatenate((np.identity(3), np.zeros((3,12))), axis=1)
 
         # in case of a specified lever arm
         if not np.allclose(lever_arm, 0):
