@@ -116,7 +116,7 @@ gnss_steps = len(z_GNSS)
 # Continous noise
 # TODO: What to remove here?
 cont_gyro_noise_std = 8e-4 # 4.36e-5  # (rad/s)/sqrt(Hz)
-cont_acc_noise_std = 1.167e-3  # (m/s**2)/sqrt(Hz)
+cont_acc_noise_std = 1e-4 # 1.167e-3  # (m/s**2)/sqrt(Hz)
 
 # Discrete sample noise at simulation rate used
 rate_std = 0.5 * cont_gyro_noise_std * np.sqrt(1 / dt)
@@ -128,7 +128,7 @@ cont_rate_bias_driving_noise_std = (
     (1 / 3) * rate_bias_driving_noise_std / np.sqrt(1 / dt)
 )
 
-acc_bias_driving_noise_std = 4e-3
+acc_bias_driving_noise_std = 4e-4 # 4e-3
 cont_acc_bias_driving_noise_std = 6 * acc_bias_driving_noise_std / np.sqrt(1 / dt)
 
 # Position and velocity measurement
@@ -192,7 +192,7 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
-N: int = 5000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+N: int = 3000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements

@@ -503,20 +503,22 @@ class ESKF:
         ), f"ESKF.innovation_GNSS: lever_arm shape incorrect {lever_arm.shape}"
 
         I = np.identity(3)
-        H_x = (np.concatenate((I, np.zeros((3,13))), axis = 1))  # Eq. (10.80) Measure position
+        # H_x = (np.concatenate((I, np.zeros((3,12))), axis = 1))  # Eq. (10.80) Measure position
         
-        q = x_nominal[ATT_IDX]
-        eta = q[0]
-        epsilon = q[1:]
-        Q_bottom = eta * np.eye(3) + cross_product_matrix(epsilon)
-        Q_top = -epsilon.T
-        Q_deltaTheta = 0.5 * np.concatenate(([Q_top], Q_bottom), axis=0)
-        X_deltax = la.block_diag(np.identity(6), Q_deltaTheta, np.identity(6))
+        # q = x_nominal[ATT_IDX]
+        # eta = q[0]
+        # epsilon = q[1:]
+        # Q_bottom = eta * np.eye(3) + cross_product_matrix(epsilon)
+        # Q_top = -epsilon.T
+        # Q_deltaTheta = 0.5 * np.concatenate(([Q_top], Q_bottom), axis=0)
+        # X_deltax = la.block_diag(np.identity(6), Q_deltaTheta, np.identity(6))
         
-        H = H_x @ X_deltax
+        # H = H_x @ X_deltax
         
-        z_pred = H_x @ x_nominal # Predicted measurement
-        v = z_GNSS_position - z_pred  # innovation
+        # z_pred = H_x @ x_nominal # Predicted measurement
+        
+        H = (np.concatenate((I, np.zeros((3,12))), axis = 1))
+        v = z_GNSS_position - x_nominal[POS_IDX] # z_pred  # innovation
 
         # leverarm compensation
         if not np.allclose(lever_arm, 0):
