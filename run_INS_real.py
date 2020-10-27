@@ -178,7 +178,7 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 20000
+N = 10000
 startSample = 50000
 GNSSkstart = floor(startSample*gnss_steps/steps)
 GNSSk = GNSSkstart
@@ -186,7 +186,7 @@ GNSSk = GNSSkstart
 for k in tqdm(range(N)):
     if timeIMU[k] >= timeGNSS[GNSSk-GNSSkstart]:
         R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
-        NIS[GNSSk] = NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
+        NIS[GNSSk-GNSSkstart] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
 
         x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
         
@@ -205,7 +205,7 @@ for k in tqdm(range(N)):
     if eskf.debug:
         assert np.all(np.isfinite(P_pred[k])), f"Not finite P_pred at index {k + 1}"
 
-
+GNSSkDiff = GNSSk - GNSSkstart
 # %% Plots
 
 fig1 = plt.figure(1)
@@ -259,9 +259,9 @@ CI3 = np.array(scipy.stats.chi2.interval(confprob, 3)).reshape((2, 1))
 
 fig3 = plt.figure()
 
-plt.plot(NIS[:GNSSk])
+plt.plot(NIS[:GNSSk-GNSSkstart])
 plt.plot(np.array([0, N-1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NIS[:GNSSk]) * (NIS[:GNSSk] <= CI3[1]))
+insideCI = np.mean((CI3[0] <= NIS[:GNSSk-GNSSkstart]) * (NIS[:GNSSk-GNSSkstart] <= CI3[1]))
 plt.title(f'NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)')
 plt.grid()
 
@@ -269,7 +269,7 @@ plt.grid()
 fig4 = plt.figure()
 
 gauss_compare = np.sum(np.random.randn(3, GNSSk)**2, axis=0)
-plt.boxplot([NIS[0:GNSSk], gauss_compare], notch=True)
+plt.boxplot([NIS[0:GNSSk-GNSSkstart], gauss_compare], notch=True)
 plt.legend('NIS', 'gauss')
 plt.grid()
 
