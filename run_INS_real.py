@@ -178,12 +178,13 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 70000
+N = 20000
 startSample = 50000
-GNSSk = floor(startSample*gnss_steps/steps)
+GNSSkstart = floor(startSample*gnss_steps/steps)
+GNSSk = GNSSkstart
 
 for k in tqdm(range(N)):
-    if timeIMU[k] >= timeGNSS[GNSSk]:
+    if timeIMU[k] >= timeGNSS[GNSSk-GNSSkstart]:
         R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
         NIS[GNSSk] = NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
 
@@ -211,7 +212,7 @@ fig1 = plt.figure(1)
 ax = plt.axes(projection='3d')
 
 ax.plot3D(x_est[0:N, 1], x_est[0:N, 0], -x_est[0:N, 2])
-ax.plot3D(z_GNSS[0:GNSSk, 1], z_GNSS[0:GNSSk, 0], -z_GNSS[0:GNSSk, 2])
+ax.plot3D(z_GNSS[GNSSkstart:GNSSk, 1], z_GNSS[GNSSkstart:GNSSk, 0], -z_GNSS[GNSSkstart:GNSSk, 2])
 ax.legend(['x_est', 'z_GNSS'])
 ax.set_xlabel('East [m]')
 ax.set_ylabel('North [m]')
