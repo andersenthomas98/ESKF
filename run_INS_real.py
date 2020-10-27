@@ -133,7 +133,7 @@ p_acc = 1e-16 # TODO
 
 p_gyro = 1e-16 # TODO
 
-p_std = np.array([1, 1, 10]) # Measurement noise
+p_std = np.array([0.5, 0.5, 1]) # Measurement noise
 R_GNSS = np.diag(p_std ** 2)
 
 # %% Estimator
@@ -161,27 +161,27 @@ NIS = np.zeros(gnss_steps)
 
 # %% Initialise
 x_pred[0, POS_IDX] = np.array([0, 0, 0]) # starting 5 metres above ground
-x_pred[0, VEL_IDX] = np.array([0, 0, 0]) # starting at 20 m/s due north
+x_pred[0, VEL_IDX] = np.array([20, 0, 0]) # starting at 20 m/s due north
 x_pred[0, ATT_IDX] = np.array([
     np.cos(45 * np.pi / 180),
     0, 0,
     np.sin(45 * np.pi / 180)
 ])  # nose to east, right to south and belly down.
 
-P_pred[0][POS_IDX**2] = 10**2 * np.eye(3)
-P_pred[0][VEL_IDX**2] = 3**2 * np.eye(3)
+P_pred[0][POS_IDX**2] = 5**2 * np.eye(3)
+P_pred[0][VEL_IDX**2] = 5**2 * np.eye(3)
 P_pred[0][ERR_ATT_IDX**2] = (np.pi/30)**2 * np.eye(3) # error rotation vector (not quat)
-P_pred[0][ERR_ACC_BIAS_IDX**2] = 0.05**2 * np.eye(3)
-P_pred[0][ERR_GYRO_BIAS_IDX**2] = (1e-3)**2 * np.eye(3)
+P_pred[0][ERR_ACC_BIAS_IDX**2] = 0.1**2 * np.eye(3)
+P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 1000
+N = 100000
 GNSSk = 0
 
 for k in tqdm(range(N)):
     if timeIMU[k] >= timeGNSS[GNSSk]:
-        #R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
+        R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
         NIS[GNSSk] = NIS[GNSSk] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
 
         x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
