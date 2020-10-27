@@ -6,6 +6,7 @@ import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from math import floor
 
 try: # see if tqdm is available, otherwise define it as a dummy
     try: # Ipython seem to require different tqdm.. try..except seem to be the easiest way to check
@@ -160,6 +161,7 @@ P_pred = np.zeros((steps, 15, 15))
 NIS = np.zeros(gnss_steps)
 
 # %% Initialise
+
 x_pred[0, POS_IDX] = np.array([0, 0, 0]) # starting 5 metres above ground
 x_pred[0, VEL_IDX] = np.array([20, 0, 0]) # starting at 20 m/s due north
 x_pred[0, ATT_IDX] = np.array([
@@ -176,8 +178,9 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 100000
-GNSSk = 0
+N = 70000
+startSample = 50000
+GNSSk = floor(startSample*gnss_steps/steps)
 
 for k in tqdm(range(N)):
     if timeIMU[k] >= timeGNSS[GNSSk]:
@@ -196,7 +199,7 @@ for k in tqdm(range(N)):
         P_est[k] = P_pred[k] # TODO
 
     if k < N - 1:
-        x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[k], z_gyroscope[k], dt) # TODO
+        x_pred[k + 1], P_pred[k + 1] = eskf.predict(x_est[k], P_est[k], z_acceleration[startSample + k], z_gyroscope[startSample + k], dt) # TODO
 
     if eskf.debug:
         assert np.all(np.isfinite(P_pred[k])), f"Not finite P_pred at index {k + 1}"
