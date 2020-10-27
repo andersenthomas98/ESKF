@@ -6,7 +6,11 @@ import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+
+import scipy.linalg as la
+
 from math import floor
+
 
 try: # see if tqdm is available, otherwise define it as a dummy
     try: # Ipython seem to require different tqdm.. try..except seem to be the easiest way to check
@@ -115,8 +119,8 @@ gnss_steps = len(z_GNSS)
 
 # %% Measurement noise
 # Continous noise
-cont_gyro_noise_std = 8e-4 # TODO
-cont_acc_noise_std = 1.167e-3 # TODO
+cont_gyro_noise_std =  8e-4 # TODO
+cont_acc_noise_std =  1.167e-3 # TODO
 
 # Discrete sample noise at simulation rate used
 rate_std = cont_gyro_noise_std*np.sqrt(1/dt)
@@ -126,7 +130,7 @@ acc_std  = cont_acc_noise_std*np.sqrt(1/dt)
 rate_bias_driving_noise_std = 5e-5 # TODO
 cont_rate_bias_driving_noise_std = rate_bias_driving_noise_std/np.sqrt(1/dt)
 
-acc_bias_driving_noise_std = 4e-3 # TODO
+acc_bias_driving_noise_std =  4e-3 # TODO
 cont_acc_bias_driving_noise_std = acc_bias_driving_noise_std/np.sqrt(1/dt)
 
 # Position and velocity measurement
@@ -147,7 +151,7 @@ eskf = ESKF(
     p_gyro,
     S_a = S_a, # set the accelerometer correction matrix
     S_g = S_g, # set the gyro correction matrix,
-    debug=True # False to avoid expensive debug checks
+    debug=False # False to avoid expensive debug checks
 )
 
 
@@ -159,11 +163,13 @@ x_pred = np.zeros((steps, 16))
 P_pred = np.zeros((steps, 15, 15))
 
 NIS = np.zeros(gnss_steps)
+NISplanar = np.zeros(gnss_steps)
+NISaltitude = np.zeros(gnss_steps)
 
 # %% Initialise
 
-x_pred[0, POS_IDX] = np.array([0, 0, 0]) # starting 5 metres above ground
-x_pred[0, VEL_IDX] = np.array([20, 0, 0]) # starting at 20 m/s due north
+x_pred[0, POS_IDX] = np.array([0, 0, 0]) 
+x_pred[0, VEL_IDX] = np.array([0, 0, 0]) # starting at a standstill
 x_pred[0, ATT_IDX] = np.array([
     np.cos(45 * np.pi / 180),
     0, 0,
@@ -178,15 +184,18 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 10000
+N = 30000
 startSample = 50000
 GNSSkstart = floor(startSample*gnss_steps/steps)
 GNSSk = GNSSkstart
 
 for k in tqdm(range(N)):
     if timeIMU[k] >= timeGNSS[GNSSk-GNSSkstart]:
-        R_GNSS = np.diag((accuracy_GNSS[GNSSk]*p_std)**2)# TODO: Current GNSS covariance
+        R_GNSS = np.diag(p_std**2 * accuracy_GNSS[GNSSk])# TODO: Current GNSS covariance
         NIS[GNSSk-GNSSkstart] = eskf.NIS_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
+        v, S = eskf.innovation_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # Ugly inline
+        NISplanar[GNSSk-GNSSkstart] = v[0:2] @ la.solve(S[0:2,0:2], v[0:2])
+        NISaltitude[GNSSk-GNSSkstart] = v[2]**2 / S[2,2]
 
         x_est[k], P_est[k] = eskf.update_GNSS_position(x_pred[k], P_pred[k], z_GNSS[GNSSk], R_GNSS, lever_arm) # TODO
         
@@ -255,21 +264,47 @@ fig2.suptitle('States estimates')
 
 # %% Consistency
 confprob = 0.95
+CI1 = np.array(scipy.stats.chi2.interval(confprob, 1)).reshape((2, 1))
+CI2 = np.array(scipy.stats.chi2.interval(confprob, 2)).reshape((2, 1))
 CI3 = np.array(scipy.stats.chi2.interval(confprob, 3)).reshape((2, 1))
 
-fig3 = plt.figure()
+fig3, axs3 = plt.subplots(3, 1, num=3, clear=True)
 
-plt.plot(NIS[:GNSSk-GNSSkstart])
-plt.plot(np.array([0, N-1]) * dt, (CI3 @ np.ones((1, 2))).T)
-insideCI = np.mean((CI3[0] <= NIS[:GNSSk-GNSSkstart]) * (NIS[:GNSSk-GNSSkstart] <= CI3[1]))
-plt.title(f'NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)')
-plt.grid()
+axs3[0].plot(NIS[:GNSSkDiff])
+axs3[0].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
+insideCI3 = np.mean((CI3[0] <= NIS[:GNSSkDiff]) * (NIS[:GNSSkDiff] <= CI3[1]))
+axs3[0].set(
+    title=f"NIS ({100 *  insideCI3:.1f} inside {100 * confprob} confidence interval)"
+)
+
+axs3[1].plot(NISplanar[:GNSSkDiff])
+axs3[1].plot(np.array([0, N - 1]) * dt, (CI2 @ np.ones((1, 2))).T)
+insideCI2 = np.mean((CI2[0] <= NISplanar[:GNSSkDiff]) * (NISplanar[:GNSSkDiff] <= CI2[1]))
+axs3[1].set(
+    title=f"Planar NIS ({100 *  insideCI2:.1f} inside {100 * confprob} confidence interval)"
+)
+
+axs3[2].plot(NISaltitude[:GNSSkDiff])
+axs3[2].plot(np.array([0, N - 1]) * dt, (CI1 @ np.ones((1, 2))).T)
+insideCI1 = np.mean((CI1[0] <= NISaltitude[:GNSSkDiff]) * (NISaltitude[:GNSSkDiff] <= CI1[1]))
+axs3[2].set(
+    title=f"Altitude NIS ({100 *  insideCI1:.1f} inside {100 * confprob} confidence interval)"
+)
+
+
+# fig3 = plt.figure()
+
+# plt.plot(NIS[:GNSSk-GNSSkstart])
+# plt.plot(np.array([0, N-1]) * dt, (CI3 @ np.ones((1, 2))).T)
+# insideCI = np.mean((CI3[0] <= NIS[:GNSSk-GNSSkstart]) * (NIS[:GNSSk-GNSSkstart] <= CI3[1]))
+# plt.title(f'NIS ({100 *  insideCI:.1f} inside {100 * confprob} confidence interval)')
+# plt.grid()
 
 # %% box plots
 fig4 = plt.figure()
 
 gauss_compare = np.sum(np.random.randn(3, GNSSk)**2, axis=0)
-plt.boxplot([NIS[0:GNSSk-GNSSkstart], gauss_compare], notch=True)
+plt.boxplot([NIS[0:GNSSkDiff], gauss_compare], notch=True)
 plt.legend('NIS', 'gauss')
 plt.grid()
 

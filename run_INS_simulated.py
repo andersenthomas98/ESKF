@@ -192,11 +192,7 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
-<<<<<<< HEAD
 N: int = 3000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
-=======
-N: int = 1000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
->>>>>>> d6c4ec516efec58324557e403b20d8223f224bae
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
