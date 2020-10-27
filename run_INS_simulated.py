@@ -115,8 +115,8 @@ gnss_steps = len(z_GNSS)
 # IMU noise values for STIM300, based on datasheet and simulation sample rate
 # Continous noise
 # TODO: What to remove here?
-cont_gyro_noise_std = 8e-4 # 4.36e-5  # (rad/s)/sqrt(Hz)
-cont_acc_noise_std = 1e-4 # 1.167e-3  # (m/s**2)/sqrt(Hz)
+cont_gyro_noise_std = 4.36e-5 #8e-4 # 4.36e-5  # (rad/s)/sqrt(Hz)
+cont_acc_noise_std = 1.167e-3 #1e-4 # 1.167e-3  # (m/s**2)/sqrt(Hz)
 
 # Discrete sample noise at simulation rate used
 rate_std = 0.5 * cont_gyro_noise_std * np.sqrt(1 / dt)
@@ -192,11 +192,7 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
-<<<<<<< HEAD
 N: int = 3000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
-=======
-N: int = 1000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
->>>>>>> d6c4ec516efec58324557e403b20d8223f224bae
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
@@ -344,13 +340,13 @@ fig4, axs4 = plt.subplots(2, 1, num=4, clear=True)
 axs4[0].plot(t, np.linalg.norm(delta_x[:N, POS_IDX], axis=1))
 axs4[0].plot(
     np.arange(0, N, 100) * dt,
-    np.linalg.norm(x_true[99:100:N, :3] - z_GNSS[:GNSSk], axis=1),
+    np.linalg.norm(x_true[99:N:100, :3] - z_GNSS[:GNSSk], axis=1),
 )
 axs4[0].set(ylabel="Position error [m]")
 axs4[0].legend(
     [
         f"Estimation error ({np.sqrt(np.mean(np.sum(delta_x[:N, POS_IDX]**2, axis=1)))})",
-        f"Measurement error ({np.sqrt(np.mean(np.sum((x_true[99:100:N, POS_IDX] - z_GNSS[GNSSk - 1])**2, axis=1)))})",
+        f"Measurement error ({np.sqrt(np.mean(np.sum((x_true[99:N:100, POS_IDX] - z_GNSS[GNSSk - 1])**2, axis=1)))})",
     ]
 )
 
