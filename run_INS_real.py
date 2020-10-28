@@ -184,7 +184,7 @@ P_pred[0][ERR_GYRO_BIAS_IDX**2] = 0.01**2 * np.eye(3)
 
 # %% Run estimation
 
-N = 30000
+N = 50000
 startSample = 50000
 GNSSkstart = floor(startSample*gnss_steps/steps)
 GNSSk = GNSSkstart
@@ -268,27 +268,40 @@ CI1 = np.array(scipy.stats.chi2.interval(confprob, 1)).reshape((2, 1))
 CI2 = np.array(scipy.stats.chi2.interval(confprob, 2)).reshape((2, 1))
 CI3 = np.array(scipy.stats.chi2.interval(confprob, 3)).reshape((2, 1))
 
+CI1lower = float(CI1[0])
+CI1upper = float(CI1[1])
+CI2lower = float(CI2[0])
+CI2upper = float(CI2[1])
+CI3lower = float(CI3[0])
+CI3upper = float(CI3[1])
+
+ANIS = np.mean(NIS)
+ANISplanar = np.mean(NISplanar)
+ANISaltitude = np.mean(NISaltitude)
+
 fig3, axs3 = plt.subplots(3, 1, num=3, clear=True)
 
 axs3[0].plot(NIS[:GNSSkDiff])
 axs3[0].plot(np.array([0, N - 1]) * dt, (CI3 @ np.ones((1, 2))).T)
 insideCI3 = np.mean((CI3[0] <= NIS[:GNSSkDiff]) * (NIS[:GNSSkDiff] <= CI3[1]))
 axs3[0].set(
-    title=f"NIS ({100 *  insideCI3:.1f} inside {100 * confprob} confidence interval)"
+    title=f"NIS ({100 *  insideCI3:.1f} inside {100 * confprob} confidence interval, ANIS = {ANIS:.2f} with CI = [{CI3lower:.2f}, {CI3upper:.2f}])"
 )
+axs3[0].xaxis.set_ticklabels([])
 
 axs3[1].plot(NISplanar[:GNSSkDiff])
 axs3[1].plot(np.array([0, N - 1]) * dt, (CI2 @ np.ones((1, 2))).T)
 insideCI2 = np.mean((CI2[0] <= NISplanar[:GNSSkDiff]) * (NISplanar[:GNSSkDiff] <= CI2[1]))
 axs3[1].set(
-    title=f"Planar NIS ({100 *  insideCI2:.1f} inside {100 * confprob} confidence interval)"
+    title=f"Planar NIS ({100 *  insideCI2:.1f} inside {100 * confprob} confidence interval, ANIS = {ANIS:.2f} with CI = [{CI2lower:.2f}, {CI2upper:.2f}])"
 )
+axs3[1].xaxis.set_ticklabels([])
 
 axs3[2].plot(NISaltitude[:GNSSkDiff])
 axs3[2].plot(np.array([0, N - 1]) * dt, (CI1 @ np.ones((1, 2))).T)
 insideCI1 = np.mean((CI1[0] <= NISaltitude[:GNSSkDiff]) * (NISaltitude[:GNSSkDiff] <= CI1[1]))
 axs3[2].set(
-    title=f"Altitude NIS ({100 *  insideCI1:.1f} inside {100 * confprob} confidence interval)"
+    title=f"Altitude NIS ({100 *  insideCI1:.1f} inside {100 * confprob} confidence interval, ANIS = {ANIS:.2f} with CI = [{CI1lower:.2f}, {CI1upper:.2f}])"
 )
 
 
