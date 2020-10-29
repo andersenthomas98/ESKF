@@ -192,7 +192,7 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
-N: int = steps # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+N: int = 20000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
@@ -366,13 +366,13 @@ CI3lower = float(CI3[0])
 CI3upper = float(CI3[1])
 
 
-ANEES = np.mean(NEES_all)
-ANEESpos = np.mean(NEES_pos)
-ANEESvel = np.mean(NEES_vel)
-ANEESatt = np.mean(NEES_att)
-ANEESaccbias = np.mean(NEES_accbias)
-ANEESgyrobias = np.mean(NEES_gyrobias)
-ANIS = np.mean(NIS)
+ANEES = np.mean(NEES_all[:N])
+ANEESpos = np.mean(NEES_pos[:N])
+ANEESvel = np.mean(NEES_vel[:N])
+ANEESatt = np.mean(NEES_att[:N])
+ANEESaccbias = np.mean(NEES_accbias[:N])
+ANEESgyrobias = np.mean(NEES_gyrobias[:N])
+ANIS = np.mean(NIS[:GNSSk])
 
 fig5, axs5 = plt.subplots(6, 1, num=5, clear=True)
 
