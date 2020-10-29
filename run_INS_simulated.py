@@ -119,13 +119,13 @@ cont_gyro_noise_std = 4.36e-5 #8e-4 # 4.36e-5  # (rad/s)/sqrt(Hz)
 cont_acc_noise_std = 1.167e-3 #1e-4 # 1.167e-3  # (m/s**2)/sqrt(Hz)
 
 # Discrete sample noise at simulation rate used
-rate_std = 5 * cont_gyro_noise_std * np.sqrt(1 / dt)
-acc_std = 10 * cont_acc_noise_std * np.sqrt(1 / dt)
+rate_std = 0.2 * cont_gyro_noise_std * np.sqrt(1 / dt)
+acc_std = 30 * cont_acc_noise_std * np.sqrt(1 / dt)
 
 # Bias values
 rate_bias_driving_noise_std = 1.45e-6 # 5e-5
 cont_rate_bias_driving_noise_std = (
-    (1 / 10) * rate_bias_driving_noise_std / np.sqrt(1 / dt)
+    30 * rate_bias_driving_noise_std / np.sqrt(1 / dt)
 )
 
 acc_bias_driving_noise_std = 4.07e-3 # 4e-4 # 4e-3
@@ -176,10 +176,10 @@ x_pred[0, VEL_IDX] = np.array([20, 0, 0])  # starting at 20 m/s due north
 x_pred[0, 6] = 1  # no initial rotation: nose to North, right to East, and belly down
 
 # These have to be set reasonably to get good results
-P_pred[0][POS_IDX ** 2] = (30*np.eye(3))**2# TODO
-P_pred[0][VEL_IDX ** 2] = (40*np.eye(3))**2 # TODO
-P_pred[0][ERR_ATT_IDX ** 2] = (np.eye(3))**2 # TODO # error rotation vector (not quat)
-P_pred[0][ERR_ACC_BIAS_IDX ** 2] = (0.1*np.eye(3))**2 # TODO
+P_pred[0][POS_IDX ** 2] = (0.1*np.eye(3))**2# TODO
+P_pred[0][VEL_IDX ** 2] = (0.5*np.eye(3))**2 # TODO
+P_pred[0][ERR_ATT_IDX ** 2] = (0.03*np.eye(3))**2 # TODO # error rotation vector (not quat)
+P_pred[0][ERR_ACC_BIAS_IDX ** 2] = (0.05*np.eye(3))**2 # TODO
 P_pred[0][ERR_GYRO_BIAS_IDX ** 2] = (0.01*np.eye(3))**2 # TODO
 
 # %% Test: you can run this cell to test your implementation
@@ -192,7 +192,7 @@ starttime = datetime.now()
 now = starttime
 then = starttime
 
-N: int = 20000 # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
+N: int = steps # TODO: choose a small value to begin with (500?), and gradually increase as you OK results
 doGNSS: bool = True  # TODO: Set this to False if you want to check that the predictions make sense over reasonable time lenghts
 
 GNSSk: int = 0  # keep track of current step in GNSS measurements
